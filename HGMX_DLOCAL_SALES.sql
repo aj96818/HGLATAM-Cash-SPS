@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 8/25/2020 2:35:24 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 8/26/2020 9:54:46 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -32,7 +32,7 @@ SELECT *
 INTO HGMX_GT
 FROM GT_Processed_HG_Mexico_New
 WHERE Date = @vDate_YYYY_MM_DD 
-	AND	SettledBy_CALC = 'DLocal'
+--	AND	SettledBy_CALC = 'DLocal'
 
 ALTER TABLE HGMX_GT
 ADD	zVIND_GT VARCHAR(50)
