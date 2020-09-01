@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_CASH_FULL]    Script Date: 8/25/2020 2:34:06 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_CASH_FULL]    Script Date: 9/1/2020 2:08:57 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -52,7 +52,17 @@ SET BUSINESS_LINE_CALC = (
 
 --SETTLEDBY_CALC
 UPDATE GT_Processed_HG_Mexico_New
-SET SETTLEDBY_CALC = Processor
+SET SETTLEDBY_CALC = (CASE WHEN Processor = 'Paypal' THEN 'Paypal'
+							WHEN Processor = 'Dlocal' THEN 'Dlocal'
+							WHEN Currency not in ('MXN') 
+									AND Processor is not null
+									AND Processor not in ('NULL', 'Credit') THEN 'Dlocal'
+							WHEN Currency in ('MXN') 
+									AND Processor is not null
+									AND Processor not in ('NULL', 'Credit') THEN 'PayU'
+								ELSE Processor 
+						END)
+
 -- Possible Values: 'NULL', 'Boleto', 'Credit', 'DLocal', 'PayPal', 'Payu'
 
 
