@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 9/2/2020 4:05:33 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 9/3/2020 8:10:50 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -12,7 +12,7 @@ GO
 
 ALTER   PROCEDURE [dbo].[HGMX_PAYU_SALES] @vDate VARCHAR(25) AS
 
-EXEC HGMX_DROPS
+--EXEC HGMX_DROPS
 
 --DECLARE @vDate VARCHAR(50)
 --SET @vDate = '20200702'
@@ -25,7 +25,6 @@ SET @vDate_MMddyyyy = FORMAT(@vDate_Datetime, 'MMddyyyy')
 
 -- Summarize revenue from PAYU txns in GT Report
 
--- How to select PayU txns from GT if the "processor" does not have 'payu' values?
 SELECT
 	COMPANY_CALC
 	, TYPE_CALC
@@ -136,6 +135,7 @@ UPDATE HGMX_PAYU SET PAYU_TxnID_CALC = Id
 -- Start building PAYU Exception Report --
 
 -- Summarize PAYU Txns in GT Report
+
 SELECT * INTO HGMX_GT_PAYU_Suspense
 FROM 
 	(SELECT
@@ -206,6 +206,16 @@ SET zAll_Company = (CASE WHEN COMPANY_CALC IS NOT NULL THEN COMPANY_CALC ELSE PA
 UPDATE HGMX_GT_PAYU_FullOuterJoin 
 SET zCurrency_All = (CASE WHEN GT_Currency IS NULL THEN PAYU_Gross_Amt_Currency ELSE GT_Currency END)
 
+/* Summarized Exception Table
+select count(unique_trans_id), sum(gt_trans_amt_usd_calc), sum(payu_gross_amt_usd_calc) 
+from HGMX_GT_PAYU_FullOuterJoin
+where Unique_Trans_ID is not null
+union all
+select count(unique_trans_id), sum(gt_trans_amt_usd_calc), sum(payu_gross_amt_usd_calc) 
+from HGMX_GT_PAYU_FullOuterJoin
+where Unique_Trans_ID is null
+*/
+
 	-- Summarize PAYU Suspense for JE
 SELECT 
 	zAll_Company
@@ -244,16 +254,9 @@ As of 9/2/20 there are no negative transaction amounts
 in the PayU merchant report so there will be
 no chargeback entries created as of now. 
 
-Same goes for Fees - no column in Merchant report to denote fees.
+Same goes for Fees - no column in Merchant report to denote fees...or taxes.
 
 */
-
-
-
-
-
-
-
 
 -- Start Cash JE
 SELECT 
