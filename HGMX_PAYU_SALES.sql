@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 9/3/2020 8:10:50 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 9/11/2020 12:19:22 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -144,11 +144,13 @@ FROM
 		, Currency as GT_Currency
 		, SUM(TRANS_AMOUNT_USD_CALC) GT_TRANS_AMT_USD_CALC
 		, SUM(TRANS_AMOUNT_LOCAL_CALC) GT_TRANS_AMT_LOCAL_CALC
+		, Date as GT_Date
 	FROM HGMX_GT
 	WHERE Settledby_Calc = 'PAYU'
-	GROUP BY COMPANY_CALC, Unique_Trans_ID, Currency) GT
+	GROUP BY COMPANY_CALC, Unique_Trans_ID, Currency, Date) GT
 
 	-- Summarize PAYU Txns in PAYU Merchant Report
+
 SELECT
 	PAYU_Property_CALC
 	, PAYU_TxnID_CALC
@@ -158,7 +160,7 @@ SELECT
 	--, Transaction_Event_Code
 	, CAST(SUM(PAYU_Gross_Amt_CALC * PAYU_FX_RATE_INVRS) AS DECIMAL(15,2)) AS PAYU_Gross_Amt_USD_CALC
 	, PAYU_FX_RATE_INVRS
-	--, PAYU_Exclude_CALC
+	, CAST(PAYU_Activity_Date AS DATE) PAYU_Activity_Date
 INTO HGMX_PAYU_Suspense
 FROM HGMX_PAYU
 GROUP BY
@@ -167,7 +169,7 @@ GROUP BY
 	, Transaction_currency
 --	, Transaction_Event_Code
 	, PAYU_FX_RATE_INVRS
---	, PAYU_Exclude_CALC
+	, PAYU_Activity_Date
 
 
 -- Join PP and GT reports at the same level of summarization to identify exceptions.
