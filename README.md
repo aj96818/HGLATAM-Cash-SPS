@@ -7,4 +7,4 @@
 4. HGMX_PAYU_SALES
 5. HGMX_DROPS
 6. HGMX_EXCEPTION_WRAPPER
-7. HGMX_Cash_Job_Test.sql (not a SPROC)
+- HGMX_Cash_Job_Test.sql (not a SPROC)
