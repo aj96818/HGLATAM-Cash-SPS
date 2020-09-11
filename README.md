@@ -1,5 +1,5 @@
 # HGMX Cash Daily Job
-##Consisting of the following SPROCs
+## Consists of the following SPROCs:
 
 1. HGMX_DLOCAL_SALES
 2. HGMX_DLOCAL_CASH
