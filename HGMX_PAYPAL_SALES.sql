@@ -1,15 +1,20 @@
 USE [GTStage_Matt]
 GO
+/****** Object:  StoredProcedure [dbo].[HGMX_PAYPAL_SALES]    Script Date: 9/11/2020 12:14:37 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
 -- HGMX Paypal Sales Cash SPS
 -- By: Alan Jackson
 -- Created on: 8/26/2020
 
- ALTER PROCEDURE HGMX_PAYPAL_SALES @vDate VARCHAR(25) AS
---EXEC HGMX_DROPS
+ ALTER PROCEDURE [dbo].[HGMX_PAYPAL_SALES] @vDate VARCHAR(25) AS
+ --EXEC HGMX_DROPS
 
 --DECLARE @vDate VARCHAR(50)
---SET @vDate = '20200602'
+--SET @vDate = '20200702'
 
 DECLARE @vDate_Datetime DATETIME
 SET @vDate_Datetime = @vDate
@@ -47,7 +52,7 @@ EXEC spUpdateJE @TabletoUpdate = 'HGMX_Paypal_GT_Summ'
 
 UPDATE A SET A.ACCOUNT = ISNULL(B.Account_Num, 'XXX-XXXXX-XXX')
 FROM HGMX_Paypal_GT_Summ A
-LEFT JOIN GTStage_Matt.dbo.hgmx_accounts_matrix B	ON A.TYPE_CALC = B.TYPE_CALC AND A.BUSINESS_LINE_CALC = B.BUSINESS_LINE_CALC;
+LEFT JOIN GTStage_Matt.dbo.hgmx_accounts_matrix_v2 B	ON A.TYPE_CALC = B.TYPE_CALC AND A.BUSINESS_LINE_CALC = B.BUSINESS_LINE_CALC;
 
 UPDATE HGMX_Paypal_GT_Summ SET REFERENCE = zPaypal_Date + ' CASH PAYPAL'
 UPDATE HGMX_Paypal_GT_Summ SET DEBIT = (CASE WHEN REVENUE_AMOUNT_USD_CALC > 0 THEN 0 ELSE REVENUE_AMOUNT_USD_CALC * -1 END)
@@ -59,7 +64,6 @@ SELECT CHECKBOOKID, BATCHID, TRANTYPE, TRANDATE, SRCDOC, CURRID, REFERENCE, ACCO
 
 
 -- Summarize Tax collected from Paypal txns in GT report.
-
 SELECT 
 	COMPANY_CALC
 	, Currency
@@ -187,9 +191,10 @@ FROM
 		, Currency as GT_Currency
 		, SUM(TRANS_AMOUNT_USD_CALC) GT_TRANS_AMT_USD_CALC
 		, SUM(TRANS_AMOUNT_LOCAL_CALC) GT_TRANS_AMT_LOCAL_CALC
+		, Date as GT_Date
 	FROM HGMX_GT
 	WHERE Settledby_Calc = 'PAYPAL'
-	GROUP BY COMPANY_CALC, Unique_Trans_ID, Currency) GT
+	GROUP BY COMPANY_CALC, Unique_Trans_ID, Currency, Date) GT
 
 	-- Summarize Paypal Txns in Paypal Merchant Report
 SELECT
@@ -202,6 +207,7 @@ SELECT
 	, CAST(SUM(PP_Gross_Amt_CALC * PP_FX_RATE_INVRS) AS DECIMAL(15,2)) AS PP_Gross_Amt_USD_CALC
 	, PP_FX_RATE_INVRS
 	, PP_Exclude_CALC
+	, CAST(PP_Activity_Date AS DATE) PP_Activity_Date
 INTO HGMX_PP_Suspense
 FROM HGMX_Paypal
 GROUP BY
@@ -211,9 +217,10 @@ GROUP BY
 	, Transaction_Event_Code
 	, PP_FX_RATE_INVRS
 	, PP_Exclude_CALC
+	, PP_Activity_Date
+
 
 	-- Join PP and GT reports at the same level of summarization to identify exceptions.
-
 SELECT GT.*, PP.*
 INTO HGMX_GT_PP_FullOuterJoin
 FROM HGMX_GT_PP_Suspense GT
@@ -306,7 +313,6 @@ UPDATE HGMX_PP_Cbacks_JE SET UNIQUEID = 'HGMXPP' + @vDate_MMddyyyy + @vDate_MMdd
 EXEC spInsertInto_Temp_JE @InsertIntoTableName = 'HGMX_PP_JE', @InsertFromTableName = 'HGMX_PP_Cbacks_JE'
 
 	-- End of Paypal Chargebacks JE; Start of Fees JE
-
 SELECT
 	zAll_Company
 	, zCurrency_All
@@ -333,7 +339,6 @@ UPDATE HGMX_PP_Fees_JE SET UNIQUEID = 'HGMXPP' + @vDate_MMddyyyy + @vDate_MMddyy
 EXEC spInsertInto_Temp_JE @InsertIntoTableName = 'HGMX_PP_JE', @InsertFromTableName = 'HGMX_PP_Fees_JE'
 
 	-- End Fees; Start Cash JE
-
 SELECT 
 	CHECKBOOKID AS zCBOOKID
 	, SUM(CREDIT) AS SUM_CREDIT
