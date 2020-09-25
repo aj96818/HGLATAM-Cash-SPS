@@ -1,4 +1,4 @@
-# HG Mexico / HG Brazil Daily Cash Job Stored SPROCS & Scripts
+# HG Mexico / HG Brazil Daily Cash Job SPROCS & Scripts
 
 ### HG Mexico
 1. HGMX_DLOCAL_SALES
