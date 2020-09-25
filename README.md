@@ -14,5 +14,5 @@
 1. HGBR_PAYPAL_SALES.sql
 2. HGBR_BRASPAG_SALES.sql
 3. HGBR_CASH_FULL.sql
-4. HGBR_DROPS
+4. HGBR_DROPS.sql
 - HGBR_Test_Script.sql (for testing purposes)
