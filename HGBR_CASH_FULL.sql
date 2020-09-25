@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGBR_CASH_FULL]    Script Date: 9/25/2020 11:47:35 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_CASH_FULL]    Script Date: 9/25/2020 1:54:39 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -25,6 +25,9 @@ ALTER TABLE GT_Processed_HG_Brazil_New
 UPDATE GT_Processed_HG_Brazil_New
 SET COMPANY_CALC = 'HGBR'
 
+-- TRANSACTION_ID_CALC
+UPDATE GT_Processed_HG_Brazil_New
+SET TRANSACTION_ID_CALC = Unique_Trans_ID
 
 --FX_RATE_INVRS
 UPDATE A
