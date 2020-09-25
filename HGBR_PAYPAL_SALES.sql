@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGBR_PAYPAL_SALES]    Script Date: 9/25/2020 9:49:27 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_PAYPAL_SALES]    Script Date: 9/25/2020 1:59:45 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -12,7 +12,7 @@ GO
 
 ALTER   PROCEDURE [dbo].[HGBR_PAYPAL_SALES] @vDate VARCHAR(25) AS
 
- --EXEC HGBR_DROPS
+--EXEC HGBR_DROPS
 
 --DECLARE @vDate VARCHAR(50)
 --SET @vDate = '20200702'
