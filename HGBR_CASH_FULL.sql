@@ -53,18 +53,18 @@ SET BUSINESS_LINE_CALC = (
 --SETTLEDBY_CALC
 UPDATE GT_Processed_HG_Brazil_New
 SET SETTLEDBY_CALC = (CASE WHEN Processor = 'Paypal' THEN 'Paypal'
-							WHEN Processor = 'Dlocal' THEN 'Dlocal'
-							WHEN Unique_Trans_ID LIKE '%MANUALTRANS%' THEN 'Dlocal'  -- 'Processor' is null in this case.
-							WHEN Currency not in ('MXN') 
-									AND Processor is not null
-									AND Processor not in ('NULL', 'Credit') THEN 'Dlocal'
-							WHEN Currency in ('MXN') 
-									AND Processor is not null
-									AND Processor not in ('NULL', 'Credit') THEN 'PayU'
+							WHEN Processor = 'Braspag' THEN 'Braspag'
+							WHEN Unique_Trans_ID LIKE '%MANUALTRANS%' THEN 'Braspag'  -- 'Processor' is null in this case.
+							--WHEN Currency not in ('MXN') 
+							--		AND Processor is not null
+							--		AND Processor not in ('NULL', 'Credit') THEN 'Dlocal'
+							--WHEN Currency in ('MXN') 
+							--		AND Processor is not null
+							--		AND Processor not in ('NULL', 'Credit') THEN 'PayU'
 								ELSE Processor 
 						END)
 
--- Possible Values: 'NULL', 'Boleto', 'Credit', 'DLocal', 'PayPal', 'Payu'
+-- Possible Values: 'NULL', 'Boleto', 'Credit', 'Braspag', 'PayPal'
 
 
 --TAX_TYPE_CALC
