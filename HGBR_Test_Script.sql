@@ -4,7 +4,7 @@ DROP TABLE GTStage_Matt.dbo.GT_Processed_HG_Brazil_New
 
 SELECT * INTO GT_PROCESSED_HG_Brazil_NEW
 FROM GTStage.dbo.GT_Processed_HG_Brazil_New
-WHERE Date > '2020-05-01'
+WHERE Date between '2020-06-20' and '2020-09-05'
 
 
 EXECUTE sp_rename 'GTStage_Matt.dbo.GT_Processed_HG_Brazil_New.SALES_AMOUNT_USD_CALC', 'REVENUE_AMOUNT_USD_CALC', 'column'
@@ -44,3 +44,4 @@ select
 	brand, type_calc, sum(total_invoice)
 from HGBR_gt_all
 group by brand, type_calc
+
