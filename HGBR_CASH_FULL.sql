@@ -1,12 +1,12 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGBR_CASH_FULL]    Script Date: 9/25/2020 10:49:55 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_CASH_FULL]    Script Date: 9/25/2020 11:47:35 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER PROCEDURE [dbo].[HGBR_CASH_FULL] AS
+ALTER   PROCEDURE [dbo].[HGBR_CASH_FULL] AS
 
 ALTER TABLE GT_Processed_HG_Brazil_New
  ADD FX_RATE_INVRS DECIMAL(15,8) 
@@ -21,6 +21,10 @@ ALTER TABLE GT_Processed_HG_Brazil_New
 	--, TAX_AMOUNT_LOCAL_CALC DECIMAL(15,3)
 	--, TAX_AMOUNT_USD_CALC DECIMAL(15,3)
 	
+-- COMPANY_CALC
+UPDATE GT_Processed_HG_Brazil_New
+SET COMPANY_CALC = 'HGBR'
+
 
 --FX_RATE_INVRS
 UPDATE A
