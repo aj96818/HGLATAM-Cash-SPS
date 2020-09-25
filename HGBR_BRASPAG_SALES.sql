@@ -1,18 +1,18 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 9/25/2020 9:52:14 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_BRASPAG_SALES]    Script Date: 9/25/2020 11:44:12 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE OR ALTER procedure [dbo].[HGBR_BRASPAG_SALES] @vDate VARCHAR(15) AS
+ALTER   procedure [dbo].[HGBR_BRASPAG_SALES] @vDate VARCHAR(15) AS
 
-EXEC HGBR_DROPS
+--EXEC HGBR_DROPS
 
 
---DECLARE @vDate VARCHAR(15)
---SET @vDate = '20200702'
+DECLARE @vDate VARCHAR(15)
+SET @vDate = '20200702'
 
 DECLARE @vDate_Datetime DATETIME
 SET @vDate_Datetime = @vDate
