@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGBR_PAYPAL_SALES]    Script Date: 9/21/2020 10:54:19 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_PAYPAL_SALES]    Script Date: 9/25/2020 9:49:27 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -10,7 +10,8 @@ GO
 -- By: Alan Jackson
 -- Created on: 9/21/2020
 
-CREATE OR ALTER PROCEDURE [dbo].[HGBR_PAYPAL_SALES] @vDate VARCHAR(25) AS
+ALTER   PROCEDURE [dbo].[HGBR_PAYPAL_SALES] @vDate VARCHAR(25) AS
+
  --EXEC HGBR_DROPS
 
 --DECLARE @vDate VARCHAR(50)
@@ -52,7 +53,7 @@ EXEC spUpdateJE @TabletoUpdate = 'HGBR_Paypal_GT_Summ'
 
 UPDATE A SET A.ACCOUNT = ISNULL(B.Account_Num, 'XXX-XXXXX-XXX')
 FROM HGBR_Paypal_GT_Summ A
-LEFT JOIN GTStage_Matt.dbo.HGBR_accounts_matrix_v2 B	ON A.TYPE_CALC = B.TYPE_CALC AND A.BUSINESS_LINE_CALC = B.BUSINESS_LINE_CALC;
+LEFT JOIN GTStage_Matt.dbo.HGMX_accounts_matrix_v2 B	ON A.TYPE_CALC = B.TYPE_CALC AND A.BUSINESS_LINE_CALC = B.BUSINESS_LINE_CALC;
 
 UPDATE HGBR_Paypal_GT_Summ SET REFERENCE = zPaypal_Date + ' CASH PAYPAL'
 UPDATE HGBR_Paypal_GT_Summ SET DEBIT = (CASE WHEN REVENUE_AMOUNT_USD_CALC > 0 THEN 0 ELSE REVENUE_AMOUNT_USD_CALC * -1 END)
@@ -99,7 +100,7 @@ EXEC spInsertInto_Temp_JE @InsertIntoTableName = 'HGBR_PP_JE', @InsertFromTableN
 --- Start summarizing HGBR Paypal Merchant Report to get Suspense, Fees, and Cback Journal Entries  ----
 
 SELECT * INTO HGBR_Paypal
-FROM GTStage.DBO.GT_Processed_Paypal_HGBR
+FROM GTStage.DBO.GT_Processed_Paypal_HGBZ
 WHERE FILE_NAME = 'STL-' + @vDate + '.01.009.CSV'
 AND CH = 'SB'
 
