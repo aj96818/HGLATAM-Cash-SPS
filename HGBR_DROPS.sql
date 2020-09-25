@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGBR_DROPS]    Script Date: 9/25/2020 11:45:47 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGBR_DROPS]    Script Date: 9/25/2020 1:58:37 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -57,3 +57,6 @@ IF OBJECT_ID('HGBR_PP_Total_Cash', 'U') IS NOT NULL
 
 IF OBJECT_ID('HGBR_PP_JE_Final', 'U') IS NOT NULL
 	DROP TABLE HGBR_PP_JE_Final;
+
+IF OBJECT_ID('HGBR_Paypal_Exception_Report', 'U') IS NOT NULL
+	DROP TABLE HGBR_Paypal_Exception_Report;
