@@ -6,12 +6,12 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
---ALTER procedure [dbo].[HGMX_DLOCAL_SALES] @vDate VARCHAR(15) AS
+ALTER procedure [dbo].[HGMX_DLOCAL_SALES] @vDate VARCHAR(15) AS
 
 EXEC HGMX_DROPS
 
-DECLARE @vDate VARCHAR(15)
-SET @vDate = '20200902'
+--DECLARE @vDate VARCHAR(15)
+--SET @vDate = '20200903'
 
 DECLARE @vDate_Datetime DATETIME
 SET @vDate_Datetime = @vDate
@@ -27,12 +27,14 @@ SET @vDate_YYYY_MM_DD = FORMAT(@vDate_Datetime, 'yyyy-MM-dd')
 -- 2) HGMX_DLOCAL: all dlocal txns for one day.
 -- 3) HGMX_Summ_Rev: Summary of the Revenue according to the GT for one day
 	--COMMENT Summarize Get Transaction data by Company, Type, Business Line and Settled By. Use only DLocal and Domestic AMEX data.
-
+	
 SELECT *
 INTO HGMX_GT
 FROM GT_Processed_HG_Mexico_New
-WHERE Date = @vDate_YYYY_MM_DD 
---	AND	SettledBy_CALC = 'DLocal'
+WHERE (((Date = @vDate_YYYY_MM_DD and Time <'21:00:00.0000000')
+ or (Date = format(dateadd(dd, -1 , @vDate_Datetime), 'yyyy-MM-dd') and Time >= '21:00:00.0000000'))
+AND	SettledBy_CALC = 'DLocal')
+OR (SettledBy_CALC <> 'Dlocal' AND date = @vDate_YYYY_MM_DD)
 
 ALTER TABLE HGMX_GT
 ADD	zVIND_GT VARCHAR(50)
@@ -48,8 +50,9 @@ FROM GTStage.dbo.GT_Processed_dLocal_all_transactions
 WHERE ROW_TYPE IN ('TX')
 	AND	LEFT(file_name, 8) = @DLOCAL_DATE
 	AND	CAST(CREATION_DATE AS DATE) = CAST(@vDate_Datetime AS DATE)
-	AND	STATUS = 'cleared'
+	AND	(STATUS = 'cleared' OR status is null)
 	AND	BANK_MID = '2049'
+
 
 ALTER TABLE HGMX_DLOCAL
 ADD	FEES_CALC DECIMAL(15,2)
@@ -591,6 +594,7 @@ FROM HGMX_DLOCAL_JE
 --SELECT * FROM HGMX_DLOCAL_FX_ADJ
 
 --SELECT * FROM HGMX_DLOCAL_EXCEPTION_REPORT
+
 --SELECT * FROM HGMX_DLOCAL_Summ_Exceptions
 --SELECT * FROM HGMX_DLOCAL_CBACKS
 --SELECT * FROM HGMX_DLOCAL_CBacks_Summ
