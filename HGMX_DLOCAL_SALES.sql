@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 11/1/2020 12:19:29 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 11/2/2020 2:21:22 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -469,7 +469,7 @@ INTO HGMX_DLOCAL_CBACKS
 FROM GTSTAGE.dbo.GT_Processed_dLocal_all_transactions
 WHERE row_type = 'CB'
 	AND left(file_name, 8) = @DLOCAL_DATE
-	AND	CAST(CREATION_DATE AS DATE) = CAST(@vDate_Datetime AS DATE)
+	AND	CAST(CB_VALUE_DATE AS DATE) = CAST(@vDate_Datetime AS DATE)
 	and  BANK_MID = '2049';
 
 
