@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 11/2/2020 2:21:22 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 11/8/2020 12:08:10 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
