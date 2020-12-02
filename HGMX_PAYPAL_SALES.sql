@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_PAYPAL_SALES]    Script Date: 9/11/2020 12:14:37 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_PAYPAL_SALES]    Script Date: 12/2/2020 10:25:14 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -14,7 +14,7 @@ GO
  --EXEC HGMX_DROPS
 
 --DECLARE @vDate VARCHAR(50)
---SET @vDate = '20200702'
+--SET @vDate = '20200802'
 
 DECLARE @vDate_Datetime DATETIME
 SET @vDate_Datetime = @vDate
@@ -86,7 +86,7 @@ EXEC spUpdateJE @TabletoUpdate = 'HGMX_Paypal_GT_Tax_Summ'
 
 UPDATE HGMX_Paypal_GT_Tax_Summ SET REFERENCE = @vDate_MMddyyyy + ' CASH PAYPAL'
 UPDATE HGMX_Paypal_GT_Tax_Summ SET ACCOUNT = (CASE
-		 WHEN TAX_TYPE_CALC = 'VAT' THEN '061-24910-000'
+		 WHEN TAX_TYPE_CALC = 'VAT' THEN '042-24910-000'
 		 WHEN TAX_TYPE_CALC = 'UST' THEN '061-21120-000'
 	 		ELSE '061-24940-000' END)
 UPDATE HGMX_Paypal_GT_Tax_Summ SET DEBIT = (CASE WHEN TAX_AMOUNT_USD_CALC > 0 THEN 0 ELSE TAX_AMOUNT_USD_CALC * -1 END) 
@@ -219,8 +219,14 @@ GROUP BY
 	, PP_Exclude_CALC
 	, PP_Activity_Date
 
+-- Join PP and GT reports at the same level of summarization to identify matched AND unmatched txns.
+SELECT GT.*, PP.*
+INTO HGMX_GT_Paypal_FullJoin
+FROM HGMX_GT_PP_Suspense GT
+FULL JOIN (SELECT * FROM HGMX_PP_Suspense WHERE PP_Exclude_CALC <> 'X') PP
+	ON GT.Unique_Trans_ID = PP.PP_TxnID_CALC
 
-	-- Join PP and GT reports at the same level of summarization to identify exceptions.
+-- Join PP and GT reports at the same level of summarization to identify exceptions.
 SELECT GT.*, PP.*
 INTO HGMX_GT_PP_FullOuterJoin
 FROM HGMX_GT_PP_Suspense GT
@@ -363,7 +369,7 @@ EXEC spUpdateJE @TabletoUpdate = 'HGMX_PP_Cash_JE'
 				, @TRANDATE = @vDate_MMddyyyy
 
 UPDATE HGMX_PP_Cash_JE SET REFERENCE = @vDate_MMddyyyy + ' CASH PAYPAL'
-UPDATE HGMX_PP_Cash_JE SET ACCOUNT = '061-10030-000'
+UPDATE HGMX_PP_Cash_JE SET ACCOUNT = '042-10030-000'
 UPDATE HGMX_PP_Cash_JE SET DEBIT = (CASE WHEN PLUG_CALC > 0 THEN PLUG_CALC ELSE 0 END)
 UPDATE HGMX_PP_Cash_JE SET CREDIT = (CASE WHEN PLUG_CALC < 0 THEN PLUG_CALC * -1 ELSE 0 END)
 UPDATE HGMX_PP_Cash_JE SET DISTREF = 'HGMX CASH USD - PAYPAL SALES'
