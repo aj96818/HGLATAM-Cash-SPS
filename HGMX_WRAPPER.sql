@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 11/1/2020 10:39:46 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 12/2/2020 10:28:02 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -37,7 +37,7 @@ SET NOCOUNT ON;
 DECLARE @vSUBJECT VARCHAR(255)
 DECLARE @VBODY VARCHAR(255)
 DECLARE @PROC_DATE DATETIME
-Declare @filenames varchar(max)
+--Declare @filenames varchar(max)
 
 
 /* This sets the run date for the Wrapper SPS to a day after the 
@@ -87,7 +87,8 @@ BEGIN TRY
 		EXEC HGMX_DLOCAL_SALES @vGT_DATE;
 		EXEC HGMX_DLOCAL_CASH @vGT_DATE;
 		EXEC HGMX_PayU_Sales @vGT_DATE;
-		EXEC HGMX_PAYPAL_SALES @vGT_DATE;		
+		EXEC HGMX_PAYPAL_SALES @vGT_DATE;	
+		EXEC HGMX_OVERPAYMENT_SALES @vGT_DATE;
 
 		--BALANCE TESTS
 				/*The subsequent code blocks check to see if each final JE table is balanced or not.
@@ -102,7 +103,7 @@ BEGIN TRY
 					)) > 100
 			--SEND EMAIL ABOUT UNBALANCE GREATER THAN 100 AND STOP JOB
 		BEGIN
-			SET @vSUBJECT = 'DB - HGMX  Unbalanced Entries "HGMX_PayU_JE_Final" ' + @vGT_DATE;
+			SET @vSUBJECT = 'DB - HGMX Unbalanced Entries "HGMX_PayU_JE_Final" ' + @vGT_DATE;
 			SET @vBODY = 'DB - HGMX Unbalanced Entries for "HGMX_PayU_JE_Final" ' + @vGT_DATE + '. Please check tables.';
 
 			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
@@ -128,7 +129,7 @@ BEGIN TRY
 					)) > 100
 			--SEND EMAIL ABOUT UNBALANCE GREATER THAN 100 AND STOP JOB
 		BEGIN
-			SET @vSUBJECT = 'DB - HGMX  Unbalanced Entries "HGMX_DLocal_Cash_JE" ' + @vGT_DATE;
+			SET @vSUBJECT = 'DB - HGMX Unbalanced Entries "HGMX_DLocal_Cash_JE" ' + @vGT_DATE;
 			SET @vBODY = 'DB - HGMX Unbalanced Entries for "HGMX_DLocal_Cash_JE" ' + @vGT_DATE + '. Please check tables.';
 
 			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
@@ -180,7 +181,7 @@ BEGIN TRY
 					)) > 100
 			--SEND EMAIL ABOUT UNBALANCE GREATER THAN 100 AND STOP JOB
 		BEGIN
-			SET @vSUBJECT = 'DB - HGMX  Unbalanced Entries "HGMX_PP_JE_Final" ' + @vGT_DATE;
+			SET @vSUBJECT = 'DB - HGMX Unbalanced Entries "HGMX_PP_JE_Final" ' + @vGT_DATE;
 			SET @vBODY = 'DB - HGMX Unbalanced Entries for "HGMX_PP_JE_Final" ' + @vGT_DATE + '. Please check tables.';
 
 			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
@@ -198,6 +199,32 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_PP_JE_Final'
 				,'061-11045-000';
 
+-- HGMX_OVERPAYMENT_SALES
+		IF ABS((
+					SELECT (SUM(DEBIT) - SUM(CREDIT))
+					FROM HGMX_OVERPAYMENT_JE
+					GROUP BY CHECKBOOKID
+					)) > 50
+		--SEND EMAIL ABOUT UNBALANCE GREATER THAN 50 AND STOP JOB
+		BEGIN
+			SET @vSUBJECT = 'DB - HGMX Unbalanced Entries "HGMX_OVERPAYMENT_JE" ' + @vGT_DATE;
+			SET @vBODY = 'DB - HGMX Unbalanced Entries for "HGMX_OVERPAYMENT_JE" ' + @vGT_DATE + '. Please check tables.';
+
+			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
+				,@subject = @vSUBJECT
+				,@body = @vBODY;
+
+			RETURN;
+		END
+		ELSE IF ABS((
+					SELECT (SUM(DEBIT) - SUM(credit))
+					FROM HGMX_OVERPAYMENT_JE
+					GROUP BY CHECKBOOKID
+					)) > 0
+			--RUN BALANCE ENTRY
+			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_OVERPAYMENT_JE'
+				,'061-11045-000';
+
 
 										
 -- Next step in Wrapper: Check for X's in the respective "Account" fields for each final JE and stop the Wrapper if any are present.
@@ -209,6 +236,8 @@ BEGIN TRY
 					SELECT CREDIT, DEBIT, ACCOUNT FROM HGMX_PP_JE_Final
 					UNION
 					SELECT CREDIT, DEBIT, ACCOUNT FROM HGMX_DLocal_Cash_JE
+					UNION
+					SELECT CREDIT, DEBIT, ACCOUNT FROM HGMX_OVERPAYMENT_JE
 					) UN
 				WHERE UN.ACCOUNT LIKE ('%XX%')) > 0
 		BEGIN
@@ -274,6 +303,10 @@ INSERT INTO COMMON_JE (CHECKBOOKID_CALC, BATCHID_CALC, TRANTYPE_CALC, TRANDATE_C
 SELECT CHECKBOOKID, BATCHID, TRANTYPE, TRANDATE, SRCDOC, CURRID, REFERENCE, ACCOUNT, DEBIT, CREDIT, DISTREF, KEY1, REVERSEDATE, UNIQUEID, DOCAMT, DISTYPE, 'HGMX', 'PayU'
 FROM HGMX_PAYU_JE_Final
 
+---- HGMX Overpayment_JE
+INSERT INTO COMMON_JE (CHECKBOOKID_CALC, BATCHID_CALC, TRANTYPE_CALC, TRANDATE_CALC, SRCDOC_CALC, CURRID_CALC, REFRENCE_CALC, ACCOUNT_CALC, DEBIT, CREDIT, DISTREF_CALC, KEY1_CALC, REVERSEDATE_CALC, UNIQUEID_CALC, DOCAMT_CALC, DISTYPE_CALC, BRAND_CALC, MERCHANT_CALC)
+SELECT CHECKBOOKID, BATCHID, TRANTYPE, TRANDATE, SRCDOC, CURRID, REFERENCE, ACCOUNT, DEBIT, CREDIT, DISTREF, KEY1, REVERSEDATE, UNIQUEID, DOCAMT, DISTYPE, 'HGMX', 'Overpayment_JE'
+FROM HGMX_OVERPAYMENT_JE
 
 -- COMMON EXCEPTION INSERTS
 
@@ -301,21 +334,32 @@ FROM HGMX_PAYU_JE_Final
 			,'GT_PROCESSED_HGMX'
 		FROM JE_RUN_HISTORY
 
-		Set @filenames = '\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Sale\'+ @vGT_DATE + '_PAYU_JE_HGMX.xlsx'
 
-		Set @filenames = (CASE WHEN (SELECT COUNT(*) FROM HGMX_PayU_Cash_JE_Final) > 0 THEN @filenames + ';\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Cash_Rec\'+ @vGT_DATE + '_PayUCash_JE_HGMX.xlsx'
-		ELSE @filenames END)
-
-		Set @filenames = (CASE WHEN (SELECT COUNT(*) FROM HGMX_PayU_Exception_Report) > 0 THEN @filenames + ';\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Exception_Reports\'+ @vGT_DATE + '_HGMX_PAYU_Exceptions.xlsx'
-		ELSE @filenames END)
-		
 		SET @vSUBJECT = 'DB - HGMX Journal Entries and Exception Reports ' + @vGT_DATE;
 		SET @vBODY = 'DB - Journal Entries and Exception Reports for ' + @vGT_DATE + ' are now available.';
 
-		EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com'--,apac-obaccounts@endurance.com'
+		EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com'
 			,@subject = @vSUBJECT
-			,@body = @vBODY
-			,@file_attachments = @filenames;
+			,@body = @vBODY;
+
+
+		--Set @filenames = '\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Sale\'+ @vGT_DATE + '_PAYU_JE_HGMX.xlsx'
+
+		--Set @filenames = (CASE WHEN (SELECT COUNT(*) FROM HGMX_PayU_Cash_JE_Final) > 0 THEN @filenames + ';\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Cash_Rec\'+ @vGT_DATE + '_PayUCash_JE_HGMX.xlsx'
+		--ELSE @filenames END)
+
+		--Set @filenames = (CASE WHEN (SELECT COUNT(*) FROM HGMX_PayU_Exception_Report) > 0 THEN @filenames + ';\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Exception_Reports\'+ @vGT_DATE + '_HGMX_PAYU_Exceptions.xlsx'
+		--ELSE @filenames END)
+		
+		--SET @vSUBJECT = 'DB - HGMX Journal Entries and Exception Reports ' + @vGT_DATE;
+		--SET @vBODY = 'DB - Journal Entries and Exception Reports for ' + @vGT_DATE + ' are now available.';
+
+		--EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com'--,apac-obaccounts@endurance.com'
+		--	,@subject = @vSUBJECT
+		--	,@body = @vBODY
+		--	,@file_attachments = @filenames;
+
+		EXEC HGMX_DROPS;
 
 		SET @PROC_DATE = DATEADD(DD, 1, @PROC_DATE)
 			
