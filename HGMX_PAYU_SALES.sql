@@ -1,6 +1,6 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 9/11/2020 12:19:22 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_PAYU_SALES]    Script Date: 12/2/2020 10:26:54 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -15,7 +15,7 @@ ALTER   PROCEDURE [dbo].[HGMX_PAYU_SALES] @vDate VARCHAR(25) AS
 --EXEC HGMX_DROPS
 
 --DECLARE @vDate VARCHAR(50)
---SET @vDate = '20200702'
+--SET @vDate = '20200802'
 
 DECLARE @vDate_Datetime DATETIME
 SET @vDate_Datetime = @vDate
@@ -101,8 +101,8 @@ EXEC spInsertInto_Temp_JE @InsertIntoTableName = 'HGMX_PAYU_JE', @InsertFromTabl
 
 SELECT * INTO HGMX_PAYU
 FROM GTStage.dbo.GT_Processed_HGLATAM_PayU
-WHERE CAST(Creation_date AS DATE) = @vDate
-AND Status NOT IN ('DECLINED', 'ERROR')
+WHERE CAST(Update_date AS DATE) = @vDate
+AND Status = 'APPROVED'
 
 ALTER TABLE HGMX_PAYU
  ADD zImport_Date VARCHAR(12)
@@ -170,6 +170,42 @@ GROUP BY
 --	, Transaction_Event_Code
 	, PAYU_FX_RATE_INVRS
 	, PAYU_Activity_Date
+
+-- Full join between GT & PayU to get all matched and unmatched txns.
+SELECT GT.*, PAYU.*
+INTO HGMX_GT_PAYU_FullJoin
+FROM HGMX_GT_PAYU_Suspense GT
+FULL JOIN (SELECT * FROM HGMX_PAYU_Suspense) PAYU
+	ON GT.Unique_Trans_ID = PAYU.PAYU_TxnID_CALC
+
+ALTER TABLE HGMX_GT_PAYU_FullJoin
+ ADD zChargeback VARCHAR(25)
+	, zCurrency_All VARCHAR(55)
+ 	, zCBack_Amount DECIMAL(15,2)
+ 	, zTrans_Amt_Diff DECIMAL(15,2)
+ 	, zFX_Diff DECIMAL(10,2)
+ 	, zOther_Diff DECIMAL(15,2)
+ 	, zAll_Company VARCHAR(50)
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zChargeback = 'No' -- (CASE WHEN Transaction_Event_Code IN ('T1106','T1201','T1202','T1110','T1111','T1114') THEN 'Yes' ELSE 'No' END)
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zCBack_Amount = (CASE WHEN zChargeback = 'Yes' THEN ISNULL(GT_TRANS_AMT_USD_CALC, 0) - ISNULL(PAYU_Gross_Amt_USD_CALC, 0) ELSE 0 END) 
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zTrans_Amt_Diff = (CASE WHEN zChargeback = 'No' THEN ISNULL(GT_TRANS_AMT_USD_CALC, 0) - ISNULL(PAYU_Gross_Amt_USD_CALC, 0) ELSE 0 END)
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zFX_Diff = (CASE WHEN GT_TRANS_AMT_LOCAL_CALC = PAYU_Gross_Amt_CALC AND zChargeback = 'No' THEN ISNULL(GT_TRANS_AMT_USD_CALC, 0) - ISNULL(PAYU_Gross_Amt_USD_CALC, 0) ELSE 0 END)
+
+UPDATE HGMX_GT_PAYU_FullJoin SET zOther_Diff = zTrans_Amt_Diff - zFX_Diff
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zAll_Company = (CASE WHEN COMPANY_CALC IS NOT NULL THEN COMPANY_CALC ELSE PAYU_Property_CALC END)
+
+UPDATE HGMX_GT_PAYU_FullJoin 
+SET zCurrency_All = (CASE WHEN GT_Currency IS NULL THEN PAYU_Gross_Amt_Currency ELSE GT_Currency END)
 
 
 -- Join PP and GT reports at the same level of summarization to identify exceptions.
@@ -285,7 +321,7 @@ EXEC spUpdateJE @TabletoUpdate = 'HGMX_PAYU_Cash_JE'
 				, @TRANDATE = @vDate_MMddyyyy
 
 UPDATE HGMX_PAYU_Cash_JE SET REFERENCE = @vDate_MMddyyyy + ' CASH PAYU'
-UPDATE HGMX_PAYU_Cash_JE SET ACCOUNT = '061-10030-000'
+UPDATE HGMX_PAYU_Cash_JE SET ACCOUNT = '061-11001-000'
 UPDATE HGMX_PAYU_Cash_JE SET DEBIT = (CASE WHEN PLUG_CALC > 0 THEN PLUG_CALC ELSE 0 END)
 UPDATE HGMX_PAYU_Cash_JE SET CREDIT = (CASE WHEN PLUG_CALC < 0 THEN PLUG_CALC * -1 ELSE 0 END)
 UPDATE HGMX_PAYU_Cash_JE SET DISTREF = 'HGMX CASH USD - PAYU SALES'
