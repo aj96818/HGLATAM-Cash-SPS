@@ -1,11 +1,10 @@
-USE [GTStage]
+USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 1/14/2021 2:03:08 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 1/19/2021 4:42:09 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 ALTER procedure [dbo].[HGMX_DLOCAL_SALES] @vDate VARCHAR(15) AS
 
@@ -632,7 +631,7 @@ SELECT CHECKBOOKID, BATCHID, TRANTYPE, TRANDATE, SRCDOC, CURRID, REFERENCE, ACCO
 INTO HGMX_DLOCAL_SALES_JE_FINAL
 FROM HGMX_DLOCAL_JE
 
-/*
+
 IF ABS((SELECT (SUM(DEBIT) - SUM(credit))
 		FROM HGMX_DLOCAL_SALES_JE_FINAL
 		GROUP BY CHECKBOOKID)) > 0
@@ -640,7 +639,7 @@ IF ABS((SELECT (SUM(DEBIT) - SUM(credit))
 		EXECUTE GTStage_Matt.dbo.sp_balance_entry_cp_NO_CR 'HGMX_DLOCAL_SALES_JE_FINAL', '061-11045-000';
 
 
-All tables in order of appearance
+/* All tables in order of appearance
 
 SELECT sum(revenue_amount_usd_calc)  FROM HGMX_GT
 SELECT sum(tax_amount_usd_calc)  FROM HGMX_GT
