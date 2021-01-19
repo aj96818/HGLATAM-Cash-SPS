@@ -1,10 +1,11 @@
-USE [GTStage_Matt]
+USE [GTStage]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 12/2/2020 10:30:26 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_DLOCAL_SALES]    Script Date: 1/14/2021 2:03:08 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 ALTER procedure [dbo].[HGMX_DLOCAL_SALES] @vDate VARCHAR(15) AS
 
@@ -30,7 +31,7 @@ SET @vDate_YYYY_MM_DD = FORMAT(@vDate_Datetime, 'yyyy-MM-dd')
 	
 SELECT *
 INTO HGMX_GT
-FROM GT_Processed_HG_Mexico_New
+FROM GT_Processed_HGLATAM
 WHERE (((Date = @vDate_YYYY_MM_DD and Time <'21:00:00.0000000')
  or (Date = format(dateadd(dd, -1 , @vDate_Datetime), 'yyyy-MM-dd') and Time >= '21:00:00.0000000'))
 AND	SettledBy_CALC = 'DLocal')
