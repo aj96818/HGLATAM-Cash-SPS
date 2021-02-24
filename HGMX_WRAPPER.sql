@@ -1,10 +1,12 @@
-USE [GTStage_Matt]
+USE [GTStage]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 12/9/2020 2:52:10 PM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 2/24/2021 11:36:31 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
 
 -- =============================================
 -- Author: ERIC SOLOMON / Alan Jackson
@@ -56,7 +58,7 @@ DECLARE @END_DATE DATETIME;
 when we receive the Litle Activity Report. */
 
 SET @END_DATE = (
-		SELECT MAX(CAST(Update_date AS DATE))
+		SELECT MAX(DATEADD(dd, -1, CAST(Update_date AS DATE)))
 		FROM GTStage.dbo.GT_Processed_HGLATAM_PayU
 		);
 		
@@ -310,7 +312,7 @@ FROM HGMX_OVERPAYMENT_JE
 
 		-- CREATE EXTRACTS HERE
 
-		--EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
+		EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
 
 		/* If Wrapper SPS runs up to this point, insert the date
 		that got run (along with some add'l details) into the 
