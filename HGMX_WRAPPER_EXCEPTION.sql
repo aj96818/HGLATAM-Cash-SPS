@@ -40,7 +40,7 @@ SET NOCOUNT ON;
 DECLARE @vSUBJECT VARCHAR(255)
 DECLARE @VBODY VARCHAR(255)
 DECLARE @PROC_DATE DATETIME
-
+DECLARE @extract_return_value INT
 
 /* This sets the run date for the Wrapper SPS to a day after the 
 last day that the Wrapper SPS ran successfully given by the JE_RUN_HISTORY table */
@@ -340,7 +340,24 @@ FROM HGMX_OVERPAYMENT_JE
 		--####################
 		--     CREATE EXTRACTS HERE
 		--####################
-		EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
+		--EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
+
+		EXECUTE @extract_return_value = [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE
+		
+		IF (@extract_return_value <> 7)
+		
+		BEGIN
+		
+			SET @vSUBJECT = 'DB - HGMX Extracts Failed ' + @vGT_DATE;
+			SET @vBODY = 'DB - HGMX Extracts Failed ' + @vGT_DATE;
+
+			EXEC msdb.dbo.sp_send_dbmail @recipients = 'acl_reporting@endurance.com;prakasha.b@endurance.com'
+				,@subject = @vSUBJECT
+				,@body = @vBODY
+
+			RETURN;
+
+		END
 
 		/* If Wrapper Exception SPS runs up to this point, insert the run date 
 		into the following tables: JE_RUN_HISTORY & EXCEPTION_RUN_HISTORY
