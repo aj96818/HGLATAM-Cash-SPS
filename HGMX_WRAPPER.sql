@@ -1,12 +1,10 @@
-USE [GTStage]
+USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 2/24/2021 11:36:31 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 2/25/2021 11:44:19 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 -- =============================================
 -- Author: ERIC SOLOMON / Alan Jackson
@@ -16,10 +14,12 @@ GO
 	while running any of the individual SPROCs.
 	
 	The individual SPROCs that this Wrapper SPROC executes are:
+
 		HGMX_PayU_Sales
 		HGMX_DLOCAL_CASH 
 		HGMX_DLOCAL_SALES 
 		HGMX_PAYPAL_SALES
+		HGMX_OVERPAYMENT_SALES
 
 	The conditions that stop the completion of the Wrapper SPROC are the following:
 		1. If any of the Cash Receipt or Sales journal entries are unbalanced by more than
@@ -27,7 +27,8 @@ GO
 		2. If any of the cash receipt or sales JEs have a total suspense > $2,500, then the Wrapper SPS terminates.
 		   Suspense is the difference between the txn amount in the merchant report versus the GT report.
 		   "HGMX High Exceptions @vDate" email is sent.
-		3. If the Wrapper fails to execute any of the individual Cash stored procedures for any reason other than the ones listed above,
+		3. (Lines 326 - 341) Send error email if extracts fail to generate after calling DMF_logging sproc.
+		4. If the Wrapper fails to execute any of the individual Cash stored procedures for any reason other than the ones listed above,
 			the Wrapper terminates.  "DB - HGMX PROCESSING ERROR" email is sent. */
 -- =============================================
 
@@ -39,11 +40,11 @@ SET NOCOUNT ON;
 DECLARE @vSUBJECT VARCHAR(255)
 DECLARE @VBODY VARCHAR(255)
 DECLARE @PROC_DATE DATETIME
---Declare @filenames varchar(max)
-
+DECLARE @extract_return_value INT;
 
 /* This sets the run date for the Wrapper SPS to a day after the 
 last day that the Wrapper SPS ran successfully given by the JE_RUN_HISTORY table */
+
 SET @PROC_DATE = (
 		SELECT DATEADD(DD, 1, MAX(DATE_RUN))
 		FROM JE_RUN_HISTORY
@@ -71,7 +72,7 @@ until 'procedure date' is less than or equal to 'end date.'  */
 BEGIN TRY
 	WHILE (@PROC_DATE <= @END_DATE)
 	BEGIN
-		SET @vGT_DATE = FORMAT(@PROC_dATE, 'yyyyMMdd')
+		SET @vGT_DATE = FORMAT(@PROC_DATE, 'yyyyMMdd')
 		SET @START_DATE = getdate();
 
 		DECLARE @vDEL_DATE VARCHAR(50);
@@ -97,7 +98,8 @@ BEGIN TRY
 				If the difference between the sum and the credits is greater than $100 than 
 				the Wrapper stops here and an Unbalanced Exceptions email is sent out. */
 		
--- HGMX_PAYU_SALES
+		-- HGMX_PAYU_SALES: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
+
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(credit))
 					FROM HGMX_PAYU_JE_Final
@@ -123,7 +125,8 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_PayU_JE_Final'
 				,'061-11045-000';
 
---HGMX_DLOCAL_Cash
+		--HGMX_DLOCAL_Cash: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
+
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(credit))
 					FROM HGMX_DLocal_Cash_JE
@@ -149,7 +152,8 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_DLocal_Cash_JE'
 				,'061-11045-000';
 
---HGMX_DLOCAL_Sales
+		--HGMX_DLOCAL_Sales: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
+
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(credit))
 					FROM HGMX_DLOCAL_SALES_JE_FINAL
@@ -175,7 +179,8 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_DLOCAL_SALES_JE_FINAL'
 				,'061-11045-000';
 
---HGMX_PAYPAL_SALES
+		--HGMX_PAYPAL_SALES: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
+
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(credit))
 					FROM HGMX_PP_JE_Final
@@ -201,7 +206,8 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_PP_JE_Final'
 				,'061-11045-000';
 
--- HGMX_OVERPAYMENT_SALES
+		-- HGMX_OVERPAYMENT_SALES: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
+	
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(CREDIT))
 					FROM HGMX_OVERPAYMENT_JE
@@ -227,9 +233,9 @@ BEGIN TRY
 			EXECUTE dbo.sp_balance_entry_cp_NO_CR 'HGMX_OVERPAYMENT_JE'
 				,'061-11045-000';
 
-
-										
--- Next step in Wrapper: Check for X's in the respective "Account" fields for each final JE and stop the Wrapper if any are present.
+														
+		-- Next step in Wrapper: Check for X's in the respective "Account" fields for each final JE and stop the Wrapper if any are present.
+	
 		IF (SELECT COUNT(*) FROM
 					(SELECT CREDIT, DEBIT, ACCOUNT FROM HGMX_PAYU_JE_Final
 					UNION 
@@ -253,6 +259,7 @@ BEGIN TRY
 			RETURN;
 		END
 		
+
 -- EXCEPTION TESTS
 
 IF ABS((
@@ -281,7 +288,12 @@ IF ABS((
 		END
 
 
--- COMMON JE INSERTS
+-- COMMON JE Table Inserts 
+
+/*
+To check the latest JE's inserted into the GTStage Common Table run:
+SELECT TOP 100 * FROM GTSTAGE.DBO.COMMON_JE WHERE BRAND_CALC = 'HGMX' ORDER BY CONVERT(DATE, RIGHT(TRANDATE_CALC, 4) + LEFT(TRANDATE_CALC, 2) + SUBSTRING(TRANDATE_CALC, 3, 2)) DESC
+*/
 
 ---- HGMX_DLOCAL_CASH
 INSERT INTO COMMON_JE (CHECKBOOKID_CALC, BATCHID_CALC, TRANTYPE_CALC, TRANDATE_CALC, SRCDOC_CALC, CURRID_CALC, REFRENCE_CALC, ACCOUNT_CALC, DEBIT, CREDIT, DISTREF_CALC, KEY1_CALC, REVERSEDATE_CALC, UNIQUEID_CALC, DOCAMT_CALC, CASHRCPT_CALC, DISTYPE_CALC, BRAND_CALC, MERCHANT_CALC)
@@ -310,9 +322,26 @@ FROM HGMX_OVERPAYMENT_JE
 
 -- COMMON EXCEPTION INSERTS
 
-		-- CREATE EXTRACTS HERE
+-- CREATE EXTRACTS HERE
 
-		EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
+		--EXECUTE [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE;
+
+		EXECUTE @extract_return_value = [DMFLogging].[dbo].[sp_HGMX_JE_Feed] @vGT_DATE
+		
+		IF (@extract_return_value <> 7)
+		
+		BEGIN
+		
+			SET @vSUBJECT = 'DB - HGMX Extracts Failed ' + @vGT_DATE;
+			SET @vBODY = 'DB - HGMX Extracts Failed ' + @vGT_DATE;
+
+			EXEC msdb.dbo.sp_send_dbmail @recipients = 'acl_reporting@endurance.com;prakasha.b@endurance.com'
+				,@subject = @vSUBJECT
+				,@body = @vBODY
+
+			RETURN;
+
+		END
 
 		/* If Wrapper SPS runs up to this point, insert the date
 		that got run (along with some add'l details) into the 
@@ -334,14 +363,12 @@ FROM HGMX_OVERPAYMENT_JE
 			,'GT_PROCESSED_HGMX'
 		FROM JE_RUN_HISTORY
 
-
 		SET @vSUBJECT = 'DB - HGMX Journal Entries and Exception Reports ' + @vGT_DATE;
 		SET @vBODY = 'DB - Journal Entries and Exception Reports for ' + @vGT_DATE + ' are now available.';
 
 		EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com'
 			,@subject = @vSUBJECT
 			,@body = @vBODY;
-
 
 		--Set @filenames = '\\corp.endurance.com\acl\axcore\Fin Ops Job Files\Entries\Sale\'+ @vGT_DATE + '_PAYU_JE_HGMX.xlsx'
 
@@ -359,7 +386,7 @@ FROM HGMX_OVERPAYMENT_JE
 		--	,@body = @vBODY
 		--	,@file_attachments = @filenames;
 
-		EXEC HGMX_DROPS;
+		-- EXEC HGMX_DROPS;
 
 		SET @PROC_DATE = DATEADD(DD, 1, @PROC_DATE)
 			
