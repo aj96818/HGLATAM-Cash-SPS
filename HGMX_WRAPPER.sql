@@ -1,6 +1,6 @@
-USE [GTStage]
+USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 3/8/2021 8:53:59 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 3/9/2021 11:59:42 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -127,9 +127,6 @@ BEGIN TRY
 				,'061-11045-000';
 
 		--HGMX_DLOCAL_Cash: If condition that checks if the final entry is more than $100 unbalanced.  If it is, an email notifying us of the imbalance will be sent.
-
-
-
 
 		IF ABS((
 					SELECT (SUM(DEBIT) - SUM(credit))
@@ -261,14 +258,14 @@ BEGIN TRY
 				,@subject = @vSUBJECT
 				,@body = @vBODY
 			RETURN;
-				END
-
-
+		END
+		
+		-- Send e-mail when total count of HGMX_PAYU merchant table is less than 6 records on the date being run:
 		IF (SELECT COUNT(*) FROM HGMX_PAYU) <= 5
-			--SEND EMAIL ABOUT COUNT OF PAYU MERCHANT TABLE RECORDS LESS THAN OR EQUAL TO 5:
+		
 		BEGIN
-			SET @vSUBJECT = 'DB - HGMX_PAYU GTStage Table less than 6 Txns on ' + @vGT_DATE;
-			SET @vBODY = 'DB - HGMX_PAYU GTStage Table less than 6 Txns on ' + @vGT_DATE + '. Please check tables.';
+			SET @vSUBJECT = 'GTStage DB - HGMX_PAYU Merchant Table less than 6 Txns on ' + @vGT_DATE;
+			SET @vBODY = 'GTStage DB - HGMX_PAYU Merchant Table less than 6 Txns on ' + @vGT_DATE + '. Please check tables.';
 
 			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
 				,@subject = @vSUBJECT
@@ -277,7 +274,6 @@ BEGIN TRY
 			RETURN;
 		END
 
-		
 
 -- EXCEPTION TESTS
 
@@ -311,7 +307,7 @@ IF ABS((
 
 /*
 To check the latest JE's inserted into the GTStage Common Table run:
-SELECT TOP 1000 * FROM GTSTAGE.DBO.COMMON_JE WHERE BRAND_CALC = 'HGMX' ORDER BY CONVERT(DATE, RIGHT(TRANDATE_CALC, 4) + LEFT(TRANDATE_CALC, 2) + SUBSTRING(TRANDATE_CALC, 3, 2)) DESC
+SELECT TOP 100 * FROM GTSTAGE.DBO.COMMON_JE WHERE BRAND_CALC = 'HGMX' ORDER BY CONVERT(DATE, RIGHT(TRANDATE_CALC, 4) + LEFT(TRANDATE_CALC, 2) + SUBSTRING(TRANDATE_CALC, 3, 2)) DESC
 */
 
 ---- HGMX_DLOCAL_CASH
