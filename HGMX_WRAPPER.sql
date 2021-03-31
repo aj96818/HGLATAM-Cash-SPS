@@ -1,10 +1,11 @@
 USE [GTStage_Matt]
 GO
-/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 3/9/2021 11:59:42 AM ******/
+/****** Object:  StoredProcedure [dbo].[HGMX_WRAPPER]    Script Date: 3/31/2021 4:50:10 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 
 -- =============================================
@@ -260,12 +261,13 @@ BEGIN TRY
 			RETURN;
 		END
 		
-		-- Send e-mail when total count of HGMX_PAYU merchant table is less than 6 records on the date being run:
-		IF (SELECT COUNT(*) FROM HGMX_PAYU) <= 5
-		
+		-- Send e-mail when total count of GT_Processed_HGLATAM_PayU merchant table is less than 1 record on the date being run:
+		IF (SELECT COUNT(*) FROM GTStage.dbo.GT_Processed_HGLATAM_PayU
+				WHERE CAST(Update_date AS DATE) = @vGT_DATE) < 1
+
 		BEGIN
-			SET @vSUBJECT = 'GTStage DB - HGMX_PAYU Merchant Table less than 6 Txns on ' + @vGT_DATE;
-			SET @vBODY = 'GTStage DB - HGMX_PAYU Merchant Table less than 6 Txns on ' + @vGT_DATE + '. Please check tables.';
+			SET @vSUBJECT = 'GTStage DB - GT_Processed_HGLATAM_PayU Merchant Table less than 1 Txn on ' + @vGT_DATE;
+			SET @vBODY = 'GTStage DB - GT_Processed_HGLATAM_PayU Merchant Table less than 1 Txn on ' + @vGT_DATE + '. Please check tables.';
 
 			EXEC msdb.dbo.sp_send_dbmail @recipients = 'ACL_REPORTING@endurance.com;prakasha.b@endurance.com'
 				,@subject = @vSUBJECT
